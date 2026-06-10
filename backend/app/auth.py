@@ -1,14 +1,15 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 import bcrypt as _bcrypt
 from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from .database import get_db, Base
 from sqlalchemy import Column, Integer, String, DateTime, func
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 SECRET_KEY = "omega-predictions-jwt-secret-change-in-production"
 ALGORITHM = "HS256"
@@ -22,11 +23,57 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     plan = Column(String(16), default="free")
     credits = Column(Integer, default=0)
+    requests_count = Column(Integer, default=0)
+    requests_limit = Column(Integer, default=1000)
     telegram_chat_id = Column(String(64), nullable=True)
     whatsapp_phone = Column(String(32), nullable=True)
     api_key = Column(String(64), unique=True, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+def generate_api_key() -> str:
+    return f"om_{secrets.token_hex(32)}"
+
+
+def get_current_user(
+    request: Request,
+    token: Optional[str] = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Credenciais invalidas",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    api_key = request.headers.get("X-API-Key")
+    if api_key:
+        user = db.query(User).filter(User.api_key == api_key).first()
+        if user is None:
+            raise credentials_exception
+        return user
+
+    if not token:
+        raise credentials_exception
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = db.query(User).filter(User.email == email).first()
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+def track_usage(current_user: User, db: Session) -> None:
+    current_user.requests_count = (current_user.requests_count or 0) + 1
+    db.commit()
 
 
 def hash_password(password: str) -> str:
@@ -42,26 +89,3 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-
-def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db),
-) -> User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Credenciais invalidas",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-
-    user = db.query(User).filter(User.email == email).first()
-    if user is None:
-        raise credentials_exception
-    return user

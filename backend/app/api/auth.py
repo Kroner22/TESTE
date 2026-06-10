@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
@@ -5,6 +6,7 @@ from ..database import get_db
 from ..auth import (
     User, hash_password, verify_password,
     create_access_token, get_current_user,
+    generate_api_key,
 )
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -32,6 +34,20 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
         json_encoders = {datetime: lambda v: v.isoformat()}
+
+
+class DashboardResponse(BaseModel):
+    id: int
+    email: str
+    plan: str
+    credits: int
+    requests_count: int
+    requests_remaining: int
+    api_key: Optional[str] = None
+    has_api_key: bool
+
+    class Config:
+        from_attributes = True
 
 
 @router.post("/register", status_code=201)
@@ -82,3 +98,32 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.get("/dashboard")
+def dashboard(current_user: User = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "plan": current_user.plan,
+        "credits": current_user.credits,
+        "requests_count": current_user.requests_count or 0,
+        "requests_limit": current_user.requests_limit or 1000,
+        "requests_remaining": (current_user.requests_limit or 1000) - (current_user.requests_count or 0),
+        "has_api_key": bool(current_user.api_key),
+        "api_key": current_user.api_key,
+    }
+
+
+@router.post("/api-key")
+def generate_new_api_key(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    current_user.api_key = generate_api_key()
+    db.commit()
+    return {"api_key": current_user.api_key, "detail": "Chave de API gerada com sucesso"}
+
+
+@router.delete("/api-key")
+def revoke_api_key(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    current_user.api_key = None
+    db.commit()
+    return {"detail": "Chave de API revogada com sucesso"}
