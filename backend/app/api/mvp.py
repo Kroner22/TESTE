@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from backend.app.database import SessionLocal, Event, OddsRecord, OpportunityRecord, AlertRecord
+from backend.app.plan_limiter import require_plan
 
 router = APIRouter(prefix="/api/v1", tags=["mvp"])
 
@@ -66,6 +67,7 @@ def list_opportunities(
     min_confidence: float = Query(0, ge=0, le=1),
     limit: int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
+    _=Depends(require_plan("paid")),
 ):
     q = (
         db.query(OpportunityRecord)
@@ -96,6 +98,7 @@ def list_alerts(
     severity: str = Query(None),
     limit: int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
+    _=Depends(require_plan("paid")),
 ):
     q = db.query(AlertRecord)
     if severity:

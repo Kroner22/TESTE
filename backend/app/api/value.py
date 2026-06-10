@@ -3,13 +3,14 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from ...domains.value.detector import ValueDetector
 from ...domains.value.models import MarketOdds, ValueOpportunity, ValueGrade
 from ..cache import cache_get_or_compute
 from ..log_config import get_logger
 from ..monitoring.metrics import value_opportunities_total, record_http
+from ..plan_limiter import require_plan
 
 router = APIRouter(prefix="/api/v1/value", tags=["value"])
 logger = get_logger(__name__)
@@ -39,6 +40,7 @@ async def scan_opportunities(
     min_ev: float = Query(0.0, ge=0),
     min_confidence: float = Query(0.0, ge=0, le=1),
     min_grade: Optional[str] = Query(None),
+    _=Depends(require_plan("paid")),
 ):
     """Scan market odds for value betting opportunities."""
     domain_markets = [_market_odds_to_domain(m) for m in markets]

@@ -5,8 +5,9 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from backend.app.plan_limiter import require_plan
 from backend.domains.clv.calculator import build_clv_record, detect_leak
 from backend.domains.clv.analyzer import (
     compute_distribution, compute_by_bookmaker, compute_correlation,
@@ -43,14 +44,14 @@ def submit_records(payload: list[dict]):
 
 
 @router.get("/records")
-def list_records(limit: int = Query(200, ge=1, le=5000)):
+def list_records(limit: int = Query(200, ge=1, le=5000), _=Depends(require_plan("paid"))):
     with _lock:
         subset = _records[-limit:]
     return [_serialize_record(r) for r in subset]
 
 
 @router.get("/report")
-def get_report():
+def get_report(_=Depends(require_plan("paid"))):
     with _lock:
         if not _records:
             raise HTTPException(404, "No CLV records available. Submit records first via POST /api/v1/clv/records")
@@ -59,7 +60,7 @@ def get_report():
 
 
 @router.get("/report/text")
-def get_report_text():
+def get_report_text(_=Depends(require_plan("paid"))):
     with _lock:
         if not _records:
             raise HTTPException(404, "No CLV records available")
@@ -68,7 +69,7 @@ def get_report_text():
 
 
 @router.get("/distribution")
-def get_distribution():
+def get_distribution(_=Depends(require_plan("paid"))):
     with _lock:
         if not _records:
             raise HTTPException(404, "No CLV records")
@@ -77,7 +78,7 @@ def get_distribution():
 
 
 @router.get("/by-bookmaker")
-def get_by_bookmaker():
+def get_by_bookmaker(_=Depends(require_plan("paid"))):
     with _lock:
         if not _records:
             raise HTTPException(404, "No CLV records")
@@ -86,7 +87,7 @@ def get_by_bookmaker():
 
 
 @router.get("/timing")
-def get_timing():
+def get_timing(_=Depends(require_plan("paid"))):
     with _lock:
         if not _records:
             raise HTTPException(404, "No CLV records")
@@ -95,7 +96,7 @@ def get_timing():
 
 
 @router.get("/leaks")
-def get_leaks():
+def get_leaks(_=Depends(require_plan("paid"))):
     with _lock:
         if not _records:
             raise HTTPException(404, "No CLV records")
@@ -104,7 +105,7 @@ def get_leaks():
 
 
 @router.get("/correlation")
-def get_correlation():
+def get_correlation(_=Depends(require_plan("paid"))):
     with _lock:
         if not _records:
             raise HTTPException(404, "No CLV records")
@@ -113,7 +114,7 @@ def get_correlation():
 
 
 @router.get("/t-test")
-def get_t_test():
+def get_t_test(_=Depends(require_plan("paid"))):
     with _lock:
         if not _records:
             raise HTTPException(404, "No CLV records")

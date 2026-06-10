@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from ...domains.arbitrage.models import (
     BookmakerOdds, ArbFilter, ArbGrade, StakeMethod,
@@ -12,6 +12,7 @@ from ...domains.arbitrage.engine import ArbitrageEngine, EngineConfig
 from ..cache import cache_get_or_compute
 from ..log_config import get_logger
 from ..monitoring.metrics import arb_opportunities_total
+from ..plan_limiter import require_plan
 
 router = APIRouter(prefix="/api/v1/arbitrage", tags=["arbitrage"])
 logger = get_logger(__name__)
@@ -40,6 +41,7 @@ async def scan_arbitrage(
     markets: dict[str, dict[str, list[dict]]],
     total_stake: float = Query(100.0, gt=0),
     min_profit_pct: float = Query(0.005, ge=0),
+    _=Depends(require_plan("paid")),
 ):
     """Scan cross-bookmaker odds for arbitrage opportunities."""
     parsed = {}
@@ -69,6 +71,7 @@ async def list_opportunities(
     min_grade: Optional[str] = Query(None),
     sport: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
+    _=Depends(require_plan("paid")),
 ):
     """List current arbitrage opportunities (from engine state)."""
     snapshot = _engine.snapshot()

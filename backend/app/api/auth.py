@@ -49,7 +49,7 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    token = create_access_token({"sub": user.email})
+    token = create_access_token({"sub": user.email, "plan": user.plan, "user_id": user.id})
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -67,7 +67,7 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     if not user or not verify_password(req.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Email ou senha incorretos")
 
-    token = create_access_token({"sub": user.email})
+    token = create_access_token({"sub": user.email, "plan": user.plan, "user_id": user.id})
     return {
         "access_token": token,
         "token_type": "bearer",
