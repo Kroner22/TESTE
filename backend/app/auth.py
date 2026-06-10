@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from .database import get_db, Base
-from sqlalchemy import Column, Integer, String, DateTime, func
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, func
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
@@ -28,6 +28,9 @@ class User(Base):
     telegram_chat_id = Column(String(64), nullable=True)
     whatsapp_phone = Column(String(32), nullable=True)
     api_key = Column(String(64), unique=True, nullable=True)
+    notify_telegram = Column(Boolean, default=False)
+    notify_whatsapp = Column(Boolean, default=False)
+    notify_min_grade = Column(String(16), default="SOLID")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

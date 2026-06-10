@@ -127,3 +127,92 @@ def revoke_api_key(current_user: User = Depends(get_current_user), db: Session =
     current_user.api_key = None
     db.commit()
     return {"detail": "Chave de API revogada com sucesso"}
+
+
+# ── Telegram ──────────────────────────────────────────────────
+
+
+class TelegramLinkRequest(BaseModel):
+    chat_id: str
+
+
+@router.post("/telegram/link")
+def link_telegram(
+    req: TelegramLinkRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    current_user.telegram_chat_id = req.chat_id
+    current_user.notify_telegram = True
+    db.commit()
+    return {"detail": "Telegram vinculado com sucesso", "chat_id": req.chat_id}
+
+
+@router.delete("/telegram/link")
+def unlink_telegram(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    current_user.telegram_chat_id = None
+    current_user.notify_telegram = False
+    db.commit()
+    return {"detail": "Telegram desvinculado com sucesso"}
+
+
+# ── Notification Preferences ──────────────────────────────────
+
+
+class NotificationPreferences(BaseModel):
+    notify_telegram: bool = False
+    notify_whatsapp: bool = False
+    notify_min_grade: str = "SOLID"
+
+
+@router.get("/notifications")
+def get_notification_prefs(
+    current_user: User = Depends(get_current_user),
+):
+    return {
+        "notify_telegram": bool(current_user.notify_telegram),
+        "notify_whatsapp": bool(current_user.notify_whatsapp),
+        "notify_min_grade": current_user.notify_min_grade or "SOLID",
+        "telegram_chat_id": current_user.telegram_chat_id,
+    }
+
+
+@router.put("/notifications")
+def update_notification_prefs(
+    prefs: NotificationPreferences,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    current_user.notify_telegram = prefs.notify_telegram
+    current_user.notify_whatsapp = prefs.notify_whatsapp
+    current_user.notify_min_grade = prefs.notify_min_grade
+    db.commit()
+    return {"detail": "Preferencias de notificacao atualizadas"}
+
+
+@router.post("/notifications/test")
+def test_notification(
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.telegram_chat_id:
+        raise HTTPException(400, "Nenhum Telegram vinculado")
+    if not current_user.notify_telegram:
+        raise HTTPException(400, "Notificacoes Telegram desativadas")
+
+    import asyncio
+    from backend.notifications.telegram import send_message
+    text = (
+        "\u2705 <b>Teste de Notificacao Omega Predictions</b>\n"
+        "Se voce esta vendo esta mensagem, sua integracao "
+        "com Telegram esta funcionando perfeitamente!"
+    )
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(send_message(current_user.telegram_chat_id, text))
+    except RuntimeError:
+        asyncio.run(send_message(current_user.telegram_chat_id, text))
+
+    return {"detail": "Mensagem de teste enviada para o Telegram"}
