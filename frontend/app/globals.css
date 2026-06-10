@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-brand-border;
+  }
+
+  body {
+    @apply bg-brand-bg text-brand-text font-sans antialiased;
+    background-image:
+      radial-gradient(ellipse at 20% 30%, rgba(59, 130, 246, 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 70%, rgba(34, 214, 140, 0.03) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  ::selection {
+    background: rgba(59, 130, 246, 0.2);
+    color: #e2e8f0;
+  }
+}
+
+@layer components {
+  .card-gradient {
+    background: linear-gradient(135deg, rgba(17, 27, 46, 0.95), rgba(17, 27, 46, 0.85));
+    backdrop-filter: blur(8px);
+  }
+
+  .card-shadow {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 1px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .card-shadow-hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25), 0 2px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .text-green { @apply text-brand-green; }
+  .text-red { @apply text-brand-red; }
+  .text-amber { @apply text-brand-amber; }
+  .text-accent { @apply text-brand-accent; }
+
+  .odds-flash-up {
+    animation: oddsFlashUp 1s ease-out;
+  }
+  .odds-flash-down {
+    animation: oddsFlashDown 1s ease-out;
+  }
+  .market-pulse {
+    animation: marketPulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes oddsFlashUp {
+  0% { box-shadow: 0 0 0 0 rgba(34, 214, 140, 0.4); }
+  50% { box-shadow: 0 0 20px 4px rgba(34, 214, 140, 0.15); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 214, 140, 0); }
+}
+
+@keyframes oddsFlashDown {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 20px 4px rgba(239, 68, 68, 0.15); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+@keyframes marketPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}

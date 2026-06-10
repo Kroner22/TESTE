@@ -1,0 +1,31 @@
+{
+  "day": "DAY_1",
+  "date": "2026-06-05 20:56:00 UTC",
+  "uptime_hours": 0,
+  "development_freeze": true,
+  "api_status": "EXHAUSTED",
+  "events_collected": 549,
+  "odds_collected": 2830,
+  "bookmakers_seen": 54,
+  "sports_seen": 41,
+  "sports_with_odds": 12,
+  "paper_trades_opened": 550,
+  "paper_trades_closed": 0,
+  "paper_trades_open": 550,
+  "clv_records_generated": 0,
+  "api_quota_remaining": 0,
+  "api_quota_limit": 500,
+  "api_quota_reset": "2026-07-01",
+  "detected_anomalies": [
+    "API quota exhausted (500/500 req/month)",
+    "0 CLV records — all events are future-dated",
+    "0 closed paper trades — no events have started",
+    "Odds refresh blocked by quota exhaustion"
+  ],
+  "snapshot": {
+    "events": 549,
+    "odds": 2830,
+    "trades": 550,
+    "clv_records": 0
+  }
+}

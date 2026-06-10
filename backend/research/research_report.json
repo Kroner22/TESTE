@@ -1,0 +1,48 @@
+{
+  "daily_reports": [
+    {
+      "day": "DAY_1",
+      "events_collected": 549,
+      "odds_collected": 2830,
+      "paper_trades_opened": 550,
+      "clv_records_generated": 0,
+      "bookmakers_seen": 54,
+      "sports_seen": 41
+    },
+    {
+      "day": "DAY_1",
+      "events_collected": 549,
+      "odds_collected": 2830,
+      "paper_trades_opened": 550,
+      "clv_records_generated": 0,
+      "bookmakers_seen": 54,
+      "sports_seen": 49
+    }
+  ],
+  "clv_analysis": {
+    "status": "insufficient_data",
+    "records": 0
+  },
+  "paper_trade_analysis": {
+    "status": "insufficient_data",
+    "total_trades": 550,
+    "closed_trades": 0
+  },
+  "ev_clv_correlation": {
+    "status": "insufficient_data",
+    "pairs": 0,
+    "minimum_required": 10
+  },
+  "bookmaker_rankings": [],
+  "sport_rankings": [],
+  "false_positive_analysis": {
+    "status": "insufficient_data",
+    "trades": 0
+  },
+  "final_classification": {
+    "classification": "INSUFFICIENT_DATA",
+    "clv_records": 0,
+    "required": 100,
+    "reasoning": "Only 0 CLV records (minimum 100 required)"
+  }
+}

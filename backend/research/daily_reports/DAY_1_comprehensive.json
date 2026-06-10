@@ -1,0 +1,217 @@
+{
+  "day": "DAY_1",
+  "date": "2026-06-05 20:57:32 UTC",
+  "development_freeze": true,
+  "api_quota": {
+    "limit": 500,
+    "used": 500,
+    "remaining": 0,
+    "status": "exhausted",
+    "estimated_reset": "2026-07-01"
+  },
+  "collection": {
+    "events": 549,
+    "odds": 2830,
+    "sports_total": 49,
+    "sports_with_odds": 10,
+    "bookmakers": 54,
+    "events_with_odds": 27
+  },
+  "paper_trading": {
+    "total": 550,
+    "open": 550,
+    "closed": 0,
+    "closable": 0
+  },
+  "clv": {
+    "records": 0,
+    "status": "insufficient_data",
+    "note": "All events are future-dated. No CLV computation possible until events start and odds are refreshed."
+  },
+  "analysis_available": [
+    "Market distribution (odds per market type)",
+    "Bookmaker coverage ranking",
+    "Sport coverage ranking",
+    "Data quality audit"
+  ],
+  "analysis_blocked": [
+    "CLV analysis (need events to start + odds refresh)",
+    "Paper trade P&L (need events to start + odds refresh)",
+    "EV->CLV correlation (need CLV records)",
+    "False positive rate (need closed trades)",
+    "Final edge classification (need 100+ CLV records)"
+  ],
+  "odds_by_sport": {
+    "baseball_mlb": 684,
+    "americanfootball_nfl": 534,
+    "aussierules_afl": 366,
+    "americanfootball_cfl": 288,
+    "americanfootball_ncaaf": 268,
+    "baseball_kbo": 242,
+    "baseball_ncaa": 168,
+    "americanfootball_ufl": 152,
+    "baseball_milb": 82,
+    "americanfootball_nfl_preseason": 46
+  },
+  "market_distribution": {
+    "h2h": 1106,
+    "h2h_lay": 54,
+    "spreads": 850,
+    "totals": 820
+  },
+  "top_bookmakers": [
+    {
+      "bookmaker": "DraftKings",
+      "odds_count": 134
+    },
+    {
+      "bookmaker": "FanDuel",
+      "odds_count": 132
+    },
+    {
+      "bookmaker": "Bovada",
+      "odds_count": 128
+    },
+    {
+      "bookmaker": "BetOnline.ag",
+      "odds_count": 112
+    },
+    {
+      "bookmaker": "BetRivers",
+      "odds_count": 104
+    },
+    {
+      "bookmaker": "1xBet",
+      "odds_count": 96
+    },
+    {
+      "bookmaker": "Nordic Bet",
+      "odds_count": 94
+    },
+    {
+      "bookmaker": "MyBookie.ag",
+      "odds_count": 94
+    },
+    {
+      "bookmaker": "Betsson",
+      "odds_count": 94
+    },
+    {
+      "bookmaker": "BetUS",
+      "odds_count": 94
+    }
+  ],
+  "sports": [
+    "americanfootball_cfl",
+    "americanfootball_ncaaf",
+    "americanfootball_ncaaf_championship_winner",
+    "americanfootball_nfl",
+    "americanfootball_nfl_preseason",
+    "americanfootball_nfl_super_bowl_winner",
+    "americanfootball_ufl",
+    "aussierules_afl",
+    "baseball_kbo",
+    "baseball_milb",
+    "baseball_mlb",
+    "baseball_mlb_world_series_winner",
+    "baseball_ncaa",
+    "baseball_npb",
+    "basketball_nba",
+    "basketball_nba_championship_winner",
+    "basketball_wnba",
+    "boxing_boxing",
+    "cricket_odi",
+    "cricket_t20_blast",
+    "cricket_test_match",
+    "golf_the_open_championship_winner",
+    "golf_us_open_winner",
+    "handball_germany_bundesliga",
+    "icehockey_ahl",
+    "icehockey_nhl",
+    "icehockey_nhl_championship_winner",
+    "lacrosse_pll",
+    "mma_mixed_martial_arts",
+    "politics_us_presidential_election_winner",
+    "rugbyleague_nrl",
+    "rugbyleague_nrl_state_of_origin",
+    "soccer_brazil_campeonato",
+    "soccer_brazil_serie_b",
+    "soccer_chile_campeonato",
+    "soccer_china_superleague",
+    "soccer_conmebol_copa_libertadores",
+    "soccer_conmebol_copa_sudamericana",
+    "soccer_fifa_world_cup",
+    "soccer_fifa_world_cup_winner",
+    "soccer_finland_veikkausliiga",
+    "soccer_japan_j_league",
+    "soccer_league_of_ireland",
+    "soccer_norway_eliteserien",
+    "soccer_spain_segunda_division",
+    "soccer_sweden_allsvenskan",
+    "soccer_sweden_superettan",
+    "tennis_atp_french_open",
+    "tennis_wta_french_open"
+  ],
+  "bookmakers": [
+    "1xBet",
+    "888sport",
+    "Bet Right",
+    "Bet Victor",
+    "BetAnything",
+    "BetMGM",
+    "BetOnline.ag",
+    "BetRivers",
+    "BetUS",
+    "Betclic (FR)",
+    "Betfair",
+    "Betfair Sportsbook",
+    "Betr",
+    "Betsson",
+    "Betway",
+    "Bovada",
+    "BoyleSports",
+    "Casumo",
+    "Coolbet",
+    "Coral",
+    "DraftKings",
+    "Everygame",
+    "FanDuel",
+    "GTbets",
+    "Grosvenor",
+    "Ladbrokes",
+    "LeoVegas",
+    "LeoVegas (SE)",
+    "LiveScore Bet",
+    "LowVig.ag",
+    "Marathon Bet",
+    "Matchbook",
+    "MyBookie.ag",
+    "Neds",
+    "Nordic Bet",
+    "PMU (FR)",
+    "Paddy Power",
+    "Pinnacle",
+    "PlayUp",
+    "PointsBet (AU)",
+    "Smarkets",
+    "SportsBet",
+    "TAB",
+    "TABtouch",
+    "Tipico",
+    "Unibet",
+    "Unibet (FR)",
+    "Unibet (NL)",
+    "Unibet (SE)",
+    "Unibet (UK)",
+    "Virgin Bet",
+    "William Hill",
+    "Winamax (DE)",
+    "Winamax (FR)"
+  ],
+  "detected_anomalies": [
+    "API quota exhausted at 500/500 requests",
+    "0 CLV records across all events",
+    "All 550 paper trades still open (no events settled)",
+    "Cannot refresh odds until quota resets"
+  ]
+}

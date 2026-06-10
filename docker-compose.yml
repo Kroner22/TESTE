@@ -1,0 +1,138 @@
+# ─── Sports Quant Platform ─── docker-compose.yml ────────────────
+# Production-ready stack: API + Frontend + Redis + Prometheus + Grafana
+
+version: "3.9"
+
+x-defaults: &defaults
+  restart: unless-stopped
+  networks:
+    - quant-net
+
+x-healthcheck-redis: &health-redis
+  test: ["CMD", "redis-cli", "ping"]
+  interval: 10s
+  timeout: 3s
+  retries: 5
+
+services:
+
+  # ── API ────────────────────────────────────────────────────────
+  api:
+    <<: *defaults
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CORS_ORIGINS=http://localhost:3000
+      - METRICS_ENABLED=true
+      - LOG_FORMAT=json
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  # ── Frontend ───────────────────────────────────────────────────
+  frontend:
+    <<: *defaults
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws/live
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # ── Redis ──────────────────────────────────────────────────────
+  redis:
+    <<: *defaults
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck: *health-redis
+    volumes:
+      - redis-data:/data
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  # ── Prometheus ─────────────────────────────────────────────────
+  prometheus:
+    <<: *defaults
+    image: prom/prometheus:v2.52.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  # ── Grafana ────────────────────────────────────────────────────
+  grafana:
+    <<: *defaults
+    image: grafana/grafana:10.4.2
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_INSTALL_PLUGINS=
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  quant-net:
+    driver: bridge

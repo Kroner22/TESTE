@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+*.whl
+
+# Environment
+.env
+.env.local
+*.env.local
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+*.log.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Frontend
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
+# ML Models (too large for git)
+models/*.pkl
+models/*.joblib
+models/*.json
+!models/.gitkeep
+
+# Backend
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+
+# Monitoring
+infra/grafana/
+infra/prometheus/
+
+# Test files
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Docker
+docker-compose.override.yml
+
+# Temp
+temp/
+tmp/
+*.tmp
+
+# Config
+*.secret
+config.yaml
