@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Omega Predictions</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        omega: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81', 950: '#1e1b4b' }
+      }
+    }
+  }
+}
+</script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans">
+<div id="app" class="flex flex-col min-h-screen">
+  <!-- Nav -->
+  <nav id="navbar" class="bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between sticky top-0 z-50 hidden">
+    <div class="flex items-center gap-6">
+      <a href="#/dashboard" class="text-xl font-bold bg-gradient-to-r from-omega-400 to-purple-400 bg-clip-text text-transparent">&#937; Omega</a>
+      <div class="hidden md:flex gap-4 text-sm">
+        <a href="#/dashboard" class="nav-link text-gray-400 hover:text-white transition">Dashboard</a>
+        <a href="#/predictions" class="nav-link text-gray-400 hover:text-white transition">Predictions</a>
+        <a href="#/performance" class="nav-link text-gray-400 hover:text-white transition">Performance</a>
+        <a href="#/settings" class="nav-link text-gray-400 hover:text-white transition">Config</a>
+        <a href="#/admin" id="admin-link" class="nav-link text-gray-400 hover:text-white transition hidden">Admin</a>
+      </div>
+    </div>
+    <div class="flex items-center gap-3 text-sm">
+      <span id="plan-badge" class="px-2 py-0.5 rounded-full text-xs font-medium bg-omega-600/20 text-omega-400"></span>
+      <span id="nav-email" class="text-gray-400 hidden sm:inline"></span>
+      <button onclick="logout()" class="text-gray-500 hover:text-red-400 transition text-xs">Sair</button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main id="main-content" class="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full"></main>
+
+  <!-- Loading -->
+  <div id="loading" class="fixed inset-0 bg-gray-950/80 flex items-center justify-center z-50 hidden">
+    <div class="animate-spin rounded-full h-10 w-10 border-2 border-omega-500 border-t-transparent"></div>
+  </div>
+</div>
+
+<script>
+// ── State ──
+let state = { token: localStorage.getItem('token'), user: null };
+
+function isAuth() { return !!state.token; }
+function apiURL(path) { return '/api/v1' + path; }
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...opts.headers };
+  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+  const res = await fetch(apiURL(path), { ...opts, headers });
+  if (res.status === 401) { logout(); return null; }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || 'Erro');
+  return data;
+}
+
+// ── Auth ──
+async function login(email, password) {
+  const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+  state.token = data.access_token;
+  localStorage.setItem('token', data.token);
+  state.token = data.access_token;
+  await loadUser();
+  showPage('dashboard');
+}
+
+async function register(email, password) {
+  await api('/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) });
+  await login(email, password);
+}
+
+async function loadUser() {
+  try {
+    const data = await api('/auth/me');
+    state.user = data;
+    document.getElementById('nav-email').textContent = data.email;
+    document.getElementById('plan-badge').textContent = data.plan;
+    if (data.plan === 'admin') document.getElementById('admin-link').classList.remove('hidden');
+    document.getElementById('navbar').classList.remove('hidden');
+  } catch { logout(); }
+}
+
+function logout() {
+  state.token = null; state.user = null;
+  localStorage.removeItem('token');
+  document.getElementById('navbar').classList.add('hidden');
+  showPage('login');
+}
+
+// ── Router ──
+function showPage(name) {
+  if (!isAuth() && name !== 'login' && name !== 'register') { name = 'login'; }
+  history.replaceState(null, '', '#/' + name);
+  renderPage(name);
+}
+
+function renderPage(name) {
+  const el = document.getElementById('main-content');
+  if (name === 'login' || name === 'register') renderAuth(el, name);
+  else if (name === 'dashboard') renderDashboard(el);
+  else if (name === 'predictions') renderPredictions(el);
+  else if (name === 'performance') renderPerformance(el);
+  else if (name === 'settings') renderSettings(el);
+  else if (name === 'admin') renderAdmin(el);
+  else renderDashboard(el);
+}
+
+window.addEventListener('hashchange', () => {
+  const page = location.hash.replace('#/', '') || 'dashboard';
+  renderPage(page);
+});
+
+// ── Auth Page ──
+function renderAuth(el, mode) {
+  el.innerHTML = `
+    <div class="flex items-center justify-center min-h-[80vh]">
+      <div class="bg-gray-900 p-8 rounded-2xl border border-gray-800 w-full max-w-md">
+        <div class="text-center mb-8">
+          <div class="text-4xl mb-2 bg-gradient-to-r from-omega-400 to-purple-400 bg-clip-text text-transparent font-bold">&#937; Omega</div>
+          <p class="text-gray-500 text-sm">Predictions Intelligence Platform</p>
+        </div>
+        <div id="auth-error" class="bg-red-900/50 text-red-300 text-sm p-3 rounded-lg mb-4 hidden"></div>
+        <form id="auth-form" onsubmit="return false">
+          <input id="auth-email" type="email" placeholder="Email" required class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl mb-3 text-gray-100 focus:outline-none focus:border-omega-500">
+          <input id="auth-pass" type="password" placeholder="Senha" required class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl mb-6 text-gray-100 focus:outline-none focus:border-omega-500">
+          <button type="submit" class="w-full py-3 bg-gradient-to-r from-omega-600 to-purple-600 rounded-xl font-medium hover:opacity-90 transition">
+            ${mode === 'login' ? 'Entrar' : 'Criar Conta'}
+          </button>
+        </form>
+        <p class="text-center mt-4 text-sm text-gray-500">
+          ${mode === 'login' ? 'Nao tem conta? <a href="#/register" class="text-omega-400 hover:underline">Registre-se</a>'
+            : 'Ja tem conta? <a href="#/login" class="text-omega-400 hover:underline">Entrar</a>'}
+        </p>
+      </div>
+    </div>`;
+  document.getElementById('auth-form').onsubmit = async () => {
+    const email = document.getElementById('auth-email').value;
+    const pass = document.getElementById('auth-pass').value;
+    const errEl = document.getElementById('auth-error');
+    errEl.classList.add('hidden');
+    try {
+      if (mode === 'login') await login(email, pass);
+      else await register(email, pass);
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.classList.remove('hidden');
+    }
+  };
+}
+
+// ── Dashboard ──
+async function renderDashboard(el) {
+  el.innerHTML = '<div class="text-center py-20 text-gray-500">Carregando...</div>';
+  try {
+    const [dash, stats] = await Promise.all([
+      api('/auth/dashboard'),
+      api('/performance').catch(() => null)
+    ]);
+    el.innerHTML = `
+      <div class="mb-6"><h1 class="text-2xl font-bold">Dashboard</h1><p class="text-gray-500 text-sm">Bem-vindo, ${state.user?.email}</p></div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">Plano</p><p class="text-xl font-bold mt-1 capitalize">${dash.plan}</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">Creditos</p><p class="text-xl font-bold mt-1">${dash.credits}</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">Requests</p><p class="text-xl font-bold mt-1">${dash.requests_count} / ${dash.requests_limit}</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">API Key</p><p class="text-xl font-bold mt-1 ${dash.has_api_key ? 'text-green-400' : 'text-gray-500'}">${dash.has_api_key ? 'Ativa' : 'Inativa'}</p></div>
+      </div>
+      ${stats ? `
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">Trades</p><p class="text-xl font-bold mt-1">${stats.total_trades}</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">Win Rate</p><p class="text-xl font-bold mt-1">${stats.win_rate}%</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">P&L</p><p class="text-xl font-bold mt-1 ${stats.total_pnl >= 0 ? 'text-green-400' : 'text-red-400'}">$${stats.total_pnl}</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">ROI</p><p class="text-xl font-bold mt-1 ${stats.roi_pct >= 0 ? 'text-green-400' : 'text-red-400'}">${stats.roi_pct}%</p></div>
+      </div>` : ''}
+      ${dash.has_api_key ? `<div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase mb-1">Sua API Key</p><code class="text-sm text-omega-300 break-all">${dash.api_key}</code></div>` : ''}
+      ${dash.telegram_chat_id ? `<div class="bg-gray-900 p-4 rounded-xl border border-gray-800 mt-4"><p class="text-gray-500 text-xs uppercase mb-1">Telegram</p><p class="text-green-400">Conectado (${dash.telegram_chat_id})</p></div>` : ''}
+    `;
+  } catch { el.innerHTML = '<div class="text-center py-20 text-red-400">Erro ao carregar dashboard</div>'; }
+}
+
+// ── Predictions ──
+async function renderPredictions(el) {
+  el.innerHTML = '<div class="mb-4 flex gap-2 flex-wrap"><h1 class="text-2xl font-bold w-full">Predictions</h1><select id="pred-sport" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm"><option value="">Todos esportes</option></select><select id="pred-grade" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm"><option value="">Todas grades</option><option>ELITE</option><option>STRONG</option><option>SOLID</option><option>SPECULATIVE</option></select></div><div id="pred-table" class="text-center py-10 text-gray-500">Carregando...</div>';
+  try {
+    // Load sports
+    const all = await api('/predictions?limit=1');
+    // Get unique sports from a larger fetch
+    const sportRes = await api('/predictions?limit=200');
+    const sports = [...new Set(sportRes.predictions.map(p => p.sport))];
+    const sportSel = document.getElementById('pred-sport');
+    sports.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; sportSel.appendChild(o); });
+
+    async function loadPreds() {
+      const sport = document.getElementById('pred-sport').value;
+      const grade = document.getElementById('pred-grade').value;
+      let url = '/predictions?limit=100';
+      if (sport) url += '&sport=' + sport;
+      if (grade) url += '&grade=' + grade;
+      const data = await api(url);
+      const t = document.getElementById('pred-table');
+      if (!data.predictions.length) { t.innerHTML = '<div class="text-center py-10 text-gray-500">Nenhuma prediction encontrada</div>'; return; }
+      t.innerHTML = `<div class="text-sm text-gray-500 mb-2">${data.total} predictions encontradas</div>
+        <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-gray-500 border-b border-gray-800">
+          <th class="text-left py-2 px-2">Evento</th><th class="text-left py-2 px-2">Mercado</th><th class="text-right py-2 px-2">Odd</th><th class="text-right py-2 px-2">EV%</th><th class="text-right py-2 px-2">Confianca</th><th class="text-center py-2 px-2">Grade</th><th class="text-center py-2 px-2">Risco</th>
+        </tr></thead><tbody>
+        ${data.predictions.map(p => `<tr class="border-b border-gray-800/50 hover:bg-gray-900/50">
+          <td class="py-2 px-2"><div class="font-medium">${p.home_team}</div><div class="text-gray-500 text-xs">vs ${p.away_team}</div></td>
+          <td class="py-2 px-2">${p.outcome}</td>
+          <td class="py-2 px-2 text-right font-mono">${p.odd}</td>
+          <td class="py-2 px-2 text-right font-mono ${p.ev_pct > 5 ? 'text-green-400' : 'text-yellow-400'}">+${p.ev_pct}%</td>
+          <td class="py-2 px-2 text-right">${(p.confidence * 100).toFixed(0)}%</td>
+          <td class="py-2 px-2 text-center"><span class="px-2 py-0.5 rounded-full text-xs font-medium ${gradeClass(p.value_grade)}">${p.value_grade}</span></td>
+          <td class="py-2 px-2 text-center"><span class="text-xs ${p.risk_level === 'LOW' ? 'text-green-400' : p.risk_level === 'MEDIUM' ? 'text-yellow-400' : 'text-red-400'}">${p.risk_level}</span></td>
+        </tr>`).join('')}
+        </tbody></table></div>`;
+    }
+    document.getElementById('pred-sport').onchange = loadPreds;
+    document.getElementById('pred-grade').onchange = loadPreds;
+    loadPreds();
+  } catch { document.getElementById('pred-table').innerHTML = '<div class="text-center py-10 text-red-400">Erro ao carregar predictions</div>'; }
+}
+
+function gradeClass(g) {
+  const m = { 'ELITE': 'bg-green-900/50 text-green-300', 'STRONG': 'bg-blue-900/50 text-blue-300', 'SOLID': 'bg-yellow-900/50 text-yellow-300', 'SPECULATIVE': 'bg-gray-800 text-gray-400' };
+  return m[g] || 'bg-gray-800 text-gray-400';
+}
+
+// ── Performance ──
+async function renderPerformance(el) {
+  el.innerHTML = '<div class="text-center py-20 text-gray-500">Carregando...</div>';
+  try {
+    const perf = await api('/performance');
+    const trades = await api('/performance/trades?limit=20');
+    el.innerHTML = `
+      <div class="mb-6"><h1 class="text-2xl font-bold">Performance</h1></div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">Total Trades</p><p class="text-2xl font-bold mt-1">${perf.total_trades}</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">Win Rate</p><p class="text-2xl font-bold mt-1">${perf.win_rate}%</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">P&L Total</p><p class="text-2xl font-bold mt-1 ${perf.total_pnl >= 0 ? 'text-green-400' : 'text-red-400'}">$${perf.total_pnl}</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">ROI</p><p class="text-2xl font-bold mt-1 ${perf.roi_pct >= 0 ? 'text-green-400' : 'text-red-400'}">${perf.roi_pct}%</p></div>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">Vencedores</p><p class="text-xl font-bold mt-1 text-green-400">${perf.winners}</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">Perdedores</p><p class="text-xl font-bold mt-1 text-red-400">${perf.losers}</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">Confianca Media</p><p class="text-xl font-bold mt-1">${(perf.avg_confidence * 100).toFixed(1)}%</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">EV Medio</p><p class="text-xl font-bold mt-1">${perf.avg_ev_pct}%</p></div>
+      </div>
+      ${perf.by_grade?.length ? `
+      <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 mb-6">
+        <p class="text-gray-500 text-xs uppercase mb-3">Por Grade</p>
+        <div class="space-y-2">${perf.by_grade.map(g => `
+          <div class="flex items-center justify-between"><span class="text-sm">${g.grade}</span><span class="text-sm font-mono ${g.pnl >= 0 ? 'text-green-400' : 'text-red-400'}">${g.trades} trades | $${g.pnl}</span></div>
+        `).join('')}</div>
+      </div>` : ''}
+      <div class="bg-gray-900 p-4 rounded-xl border border-gray-800">
+        <p class="text-gray-500 text-xs uppercase mb-3">Ultimos Trades</p>
+        <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-gray-500 border-b border-gray-800">
+          <th class="text-left py-2">Evento</th><th class="text-right py-2">Entrada</th><th class="text-right py-2">Saida</th><th class="text-right py-2">P&L</th>
+        </tr></thead><tbody>
+        ${trades.trades.map(t => `<tr class="border-b border-gray-800/50">
+          <td class="py-2">${t.home_team || t.event_id?.slice(0, 8)}</td>
+          <td class="py-2 text-right font-mono">${t.entry_odd}</td>
+          <td class="py-2 text-right font-mono">${t.exit_odd || '-'}</td>
+          <td class="py-2 text-right font-mono ${(t.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}">${t.pnl?.toFixed(2) || '0.00'}</td>
+        </tr>`).join('')}
+        </tbody></table></div>
+      </div>`;
+  } catch { el.innerHTML = '<div class="text-center py-20 text-red-400">Erro ao carregar performance</div>'; }
+}
+
+// ── Settings ──
+async function renderSettings(el) {
+  el.innerHTML = '<div class="text-center py-20 text-gray-500">Carregando...</div>';
+  try {
+    const dash = await api('/auth/dashboard');
+    const notif = await api('/auth/notifications');
+    el.innerHTML = `
+      <div class="mb-6"><h1 class="text-2xl font-bold">Configuracoes</h1></div>
+      <div class="grid gap-6 max-w-2xl">
+        <!-- API Key -->
+        <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
+          <h2 class="font-semibold mb-3">API Key</h2>
+          ${dash.has_api_key ? `
+            <code class="block bg-gray-800 p-3 rounded-lg text-sm text-omega-300 mb-3 break-all">${dash.api_key}</code>
+            <button onclick="revokeKey()" class="text-sm px-4 py-2 bg-red-900/50 text-red-300 rounded-lg hover:bg-red-900/70 transition">Revogar</button>
+          ` : `<p class="text-gray-500 text-sm mb-3">Gere uma chave de API para acesso programatico.</p>
+            <button onclick="genKey()" class="text-sm px-4 py-2 bg-omega-600 rounded-lg hover:bg-omega-500 transition">Gerar API Key</button>`}
+        </div>
+        <!-- Telegram -->
+        <div class="bg-gray-900 p-5 rounded-xl border border-gray-800">
+          <h2 class="font-semibold mb-3">Telegram</h2>
+          ${notif.telegram_chat_id ? `
+            <p class="text-green-400 text-sm mb-2">Conectado: ${notif.telegram_chat_id}</p>
+            <div class="flex gap-2 mb-3">
+              <button onclick="testTelegram()" class="text-sm px-4 py-2 bg-omega-600 rounded-lg hover:bg-omega-500 transition">Testar</button>
+              <button onclick="unlinkTelegram()" class="text-sm px-4 py-2 bg-red-900/50 text-red-300 rounded-lg hover:bg-red-900/70 transition">Desvincular</button>
+            </div>` : `
+            <p class="text-gray-500 text-sm mb-3">Vincule seu Telegram para receber alerts.</p>
+            <div class="flex gap-2">
+              <input id="tg-chat-id" placeholder="Chat ID" class="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm focus:outline-none focus:border-omega-500">
+              <button onclick="linkTelegram()" class="text-sm px-4 py-2 bg-omega-600 rounded-lg hover:bg-omega-500 transition">Vincular</button>
+            </div>`}
+          <div class="mt-4">
+            <p class="text-gray-500 text-xs uppercase mb-2">Grade Minima para Notificacao</p>
+            <select id="notif-grade" onchange="updateNotif()" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm w-full">
+              <option value="ELITE" ${notif.notify_min_grade === 'ELITE' ? 'selected' : ''}>ELITE</option>
+              <option value="STRONG" ${notif.notify_min_grade === 'STRONG' ? 'selected' : ''}>STRONG</option>
+              <option value="SOLID" ${notif.notify_min_grade === 'SOLID' ? 'selected' : ''}>SOLID</option>
+              <option value="SPECULATIVE" ${notif.notify_min_grade === 'SPECULATIVE' ? 'selected' : ''}>Todas</option>
+            </select>
+          </div>
+        </div>
+      </div>`;
+  } catch { el.innerHTML = '<div class="text-center py-20 text-red-400">Erro ao carregar configuracoes</div>'; }
+}
+
+async function genKey() { await api('/auth/api-key', { method: 'POST' }); showPage('settings'); }
+async function revokeKey() { await api('/auth/api-key', { method: 'DELETE' }); showPage('settings'); }
+async function linkTelegram() {
+  const chatId = document.getElementById('tg-chat-id').value;
+  if (!chatId) return;
+  await api('/auth/telegram/link', { method: 'POST', body: JSON.stringify({ chat_id: chatId }) });
+  showPage('settings');
+}
+async function unlinkTelegram() { await api('/auth/telegram/link', { method: 'DELETE' }); showPage('settings'); }
+async function testTelegram() { await api('/auth/notifications/test', { method: 'POST' }); alert('Mensagem de teste enviada!'); }
+async function updateNotif() {
+  const grade = document.getElementById('notif-grade').value;
+  await api('/auth/notifications', { method: 'PUT', body: JSON.stringify({ notify_telegram: true, notify_whatsapp: false, notify_min_grade: grade }) });
+}
+
+// ── Admin ──
+async function renderAdmin(el) {
+  el.innerHTML = '<div class="text-center py-20 text-gray-500">Carregando...</div>';
+  try {
+    const stats = await api('/admin/stats');
+    const users = await api('/admin/users?limit=100');
+    el.innerHTML = `
+      <div class="mb-6"><h1 class="text-2xl font-bold">Admin Panel</h1></div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">Usuarios</p><p class="text-xl font-bold">${stats.users.total}</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">Eventos</p><p class="text-xl font-bold">${stats.data.events}</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">Opportunidades</p><p class="text-xl font-bold">${stats.data.opportunities}</p></div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800"><p class="text-gray-500 text-xs uppercase">P&L Total</p><p class="text-xl font-bold ${stats.data.total_pnl >= 0 ? 'text-green-400' : 'text-red-400'}">$${stats.data.total_pnl}</p></div>
+      </div>
+      <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 mb-6">
+        <p class="text-gray-500 text-xs uppercase mb-3">Usuarios (${users.total})</p>
+        <div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-gray-500 border-b border-gray-800">
+          <th class="text-left py-2">ID</th><th class="text-left py-2">Email</th><th class="text-center py-2">Plano</th><th class="text-right py-2">Requests</th><th class="text-center py-2">Telegram</th><th class="text-center py-2">API Key</th>
+        </tr></thead><tbody>
+        ${users.users.map(u => `<tr class="border-b border-gray-800/50">
+          <td class="py-2">${u.id}</td>
+          <td class="py-2">${u.email}</td>
+          <td class="py-2 text-center"><span class="px-2 py-0.5 rounded-full text-xs font-medium ${planClass(u.plan)}">${u.plan}</span></td>
+          <td class="py-2 text-right">${u.requests_count}</td>
+          <td class="py-2 text-center">${u.notify_telegram ? '<span class="text-green-400">Sim</span>' : '<span class="text-gray-600">-</span>'}</td>
+          <td class="py-2 text-center">${u.has_api_key ? '<span class="text-green-400">Sim</span>' : '<span class="text-gray-600">-</span>'}</td>
+        </tr>`).join('')}
+        </tbody></table></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800">
+          <p class="text-gray-500 text-xs uppercase mb-2">Opportunidades por Grade</p>
+          ${Object.entries(stats.opportunities_by_grade).map(([g, c]) => `<div class="flex justify-between text-sm py-1"><span>${g}</span><span>${c}</span></div>`).join('')}
+        </div>
+        <div class="bg-gray-900 p-4 rounded-xl border border-gray-800">
+          <p class="text-gray-500 text-xs uppercase mb-2">Eventos por Esporte</p>
+          ${Object.entries(stats.events_by_sport).slice(0, 10).map(([s, c]) => `<div class="flex justify-between text-sm py-1"><span>${s}</span><span>${c}</span></div>`).join('')}
+        </div>
+      </div>`;
+  } catch { el.innerHTML = '<div class="text-center py-20 text-red-400">Erro ao carregar admin</div>'; }
+}
+
+function planClass(p) {
+  const m = { 'admin': 'bg-red-900/50 text-red-300', 'paid': 'bg-green-900/50 text-green-300', 'free': 'bg-gray-800 text-gray-400' };
+  return m[p] || 'bg-gray-800 text-gray-400';
+}
+
+// ── Init ──
+async function init() {
+  if (isAuth()) { await loadUser(); const page = location.hash.replace('#/', '') || 'dashboard'; showPage(page); }
+  else { showPage('login'); }
+}
+init();
+</script>
+</body>
+</html>
