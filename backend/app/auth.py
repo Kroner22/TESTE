@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from .database import get_db, Base
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, func
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, func, Text
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
@@ -34,12 +34,39 @@ class User(Base):
     stripe_customer_id = Column(String(128), nullable=True)
     stripe_subscription_id = Column(String(128), nullable=True)
     subscription_status = Column(String(32), default="inactive")
+    reset_token = Column(Text, nullable=True)
+    reset_token_expires = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
 def generate_api_key() -> str:
     return f"om_{secrets.token_hex(32)}"
+
+
+def generate_reset_token() -> str:
+    return secrets.token_urlsafe(48)
+
+
+def create_reset_token(user: User) -> str:
+    token = generate_reset_token()
+    user.reset_token = token
+    user.reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
+    return token
+
+
+def verify_reset_token(user: User, token: str) -> bool:
+    if not user.reset_token or not user.reset_token_expires:
+        return False
+    if user.reset_token != token:
+        return False
+    expires = user.reset_token_expires
+    if expires.tzinfo is None:
+        from datetime import timezone as tz
+        expires = expires.replace(tzinfo=tz.utc)
+    if datetime.now(timezone.utc) > expires:
+        return False
+    return True
 
 
 def get_current_user(

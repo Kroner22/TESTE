@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
@@ -164,6 +165,16 @@ def unlink_telegram(
 # ── Notification Preferences ──────────────────────────────────
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    token: str
+    new_password: str
+
+
 class NotificationPreferences(BaseModel):
     notify_telegram: bool = False
     notify_whatsapp: bool = False
@@ -193,6 +204,37 @@ def update_notification_prefs(
     current_user.notify_min_grade = prefs.notify_min_grade
     db.commit()
     return {"detail": "Preferencias de notificacao atualizadas"}
+
+
+# ── Password Reset ────────────────────────────────────────────
+
+
+@router.post("/forgot-password")
+def forgot_password(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == req.email).first()
+    if not user:
+        return {"detail": "Se o email existir, voce recebera um link de recuperacao"}
+    from backend.app.auth import create_reset_token
+    token = create_reset_token(user)
+    db.commit()
+    reset_link = f"{os.getenv('DOMAIN', 'http://localhost:8000')}/app/#/reset-password?token={token}&email={req.email}"
+    print(f"[PASSWORD RESET] Link para {req.email}: {reset_link}")
+    return {"detail": "Se o email existir, voce recebera um link de recuperacao"}
+
+
+@router.post("/reset-password")
+def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == req.email).first()
+    if not user:
+        raise HTTPException(400, "Link invalido ou expirado")
+    from backend.app.auth import verify_reset_token
+    if not verify_reset_token(user, req.token):
+        raise HTTPException(400, "Link invalido ou expirado")
+    user.password_hash = hash_password(req.new_password)
+    user.reset_token = None
+    user.reset_token_expires = None
+    db.commit()
+    return {"detail": "Senha redefinida com sucesso"}
 
 
 @router.post("/notifications/test")
