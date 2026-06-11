@@ -4,18 +4,76 @@ sys.path.insert(0, r'C:\Users\cex\Desktop\OmegaPredictions')
 os.chdir(r'C:\Users\cex\Desktop\OmegaPredictions')
 os.environ['RUNTIME_MODE'] = 'SIMULATION'
 os.environ['STRUCTLOG_LOG_LEVEL'] = 'CRITICAL'
+os.environ['MVP_DB_PATH'] = 'data/test_performance.db'
 import logging; logging.disable(logging.CRITICAL)
 
-# Ensure trades exist
-from backend.app.database import DB_PATH
-import sqlite3
-c = sqlite3.connect(DB_PATH)
-pt = c.execute('SELECT count(*) FROM paper_trades').fetchone()[0]
-c.close()
-if pt == 0:
-    print('[!] Nenhum paper trade encontrado. Executando seed...')
-    from scripts.seed_trades import main as seed_trades
-    seed_trades()
+# Clean DB
+for f in ['data/test_performance.db', 'data/test_performance.db-wal', 'data/test_performance.db-shm']:
+    try: os.remove(f)
+    except FileNotFoundError: pass
+
+from backend.app.auth import User
+from backend.app.database import Base, engine
+Base.metadata.create_all(bind=engine)
+
+from decimal import Decimal
+from datetime import datetime, timedelta, timezone
+import uuid
+from backend.app.database import SessionLocal, PaperTradeRecord
+
+db = SessionLocal()
+now = datetime.now(timezone.utc)
+
+# Seed paper trades
+trades = [
+    PaperTradeRecord(
+        position_id=f"pt_{uuid.uuid4().hex[:12]}", event_id="soccer_a_b",
+        market="h2h", outcome="home", bookmaker="Pinnacle",
+        entry_odd=Decimal("2.10"), entry_ev=Decimal("0.08"), stake=Decimal("50"),
+        entry_timestamp=now - timedelta(hours=48), is_open=False,
+        exit_odd=Decimal("2.30"), exit_timestamp=now - timedelta(hours=2),
+        pnl=Decimal("4.76"), pnl_pct=Decimal("9.52"),
+        confidence=Decimal("0.85"), kelly_fraction=Decimal("0.25"),
+    ),
+    PaperTradeRecord(
+        position_id=f"pt_{uuid.uuid4().hex[:12]}", event_id="basketball_c_d",
+        market="h2h", outcome="away", bookmaker="DraftKings",
+        entry_odd=Decimal("1.80"), entry_ev=Decimal("0.05"), stake=Decimal("75"),
+        entry_timestamp=now - timedelta(hours=72), is_open=False,
+        exit_odd=Decimal("1.65"), exit_timestamp=now - timedelta(hours=6),
+        pnl=Decimal("-6.25"), pnl_pct=Decimal("-8.33"),
+        confidence=Decimal("0.72"), kelly_fraction=Decimal("0.25"),
+    ),
+    PaperTradeRecord(
+        position_id=f"pt_{uuid.uuid4().hex[:12]}", event_id="soccer_e_f",
+        market="h2h", outcome="draw", bookmaker="Bet365",
+        entry_odd=Decimal("3.40"), entry_ev=Decimal("0.12"), stake=Decimal("30"),
+        entry_timestamp=now - timedelta(hours=96), is_open=False,
+        exit_odd=Decimal("3.80"), exit_timestamp=now - timedelta(hours=24),
+        pnl=Decimal("3.53"), pnl_pct=Decimal("11.76"),
+        confidence=Decimal("0.45"), kelly_fraction=Decimal("0.10"),
+    ),
+    PaperTradeRecord(
+        position_id=f"pt_{uuid.uuid4().hex[:12]}", event_id="baseball_g_h",
+        market="h2h", outcome="home", bookmaker="FanDuel",
+        entry_odd=Decimal("1.95"), entry_ev=Decimal("0.03"), stake=Decimal("100"),
+        entry_timestamp=now - timedelta(hours=12), is_open=False,
+        exit_odd=Decimal("1.70"), exit_timestamp=now - timedelta(hours=1),
+        pnl=Decimal("-12.82"), pnl_pct=Decimal("-12.82"),
+        confidence=Decimal("0.60"), kelly_fraction=Decimal("0.25"),
+    ),
+    PaperTradeRecord(
+        position_id=f"pt_{uuid.uuid4().hex[:12]}", event_id="soccer_i_j",
+        market="h2h", outcome="home", bookmaker="Pinnacle",
+        entry_odd=Decimal("2.50"), entry_ev=Decimal("0.15"), stake=Decimal("40"),
+        entry_timestamp=now - timedelta(hours=36), is_open=False,
+        exit_odd=Decimal("2.80"), exit_timestamp=now - timedelta(hours=4),
+        pnl=Decimal("4.80"), pnl_pct=Decimal("12.00"),
+        confidence=Decimal("0.91"), kelly_fraction=Decimal("0.33"),
+    ),
+]
+db.bulk_save_objects(trades)
+db.commit(); db.close()
 
 from backend.app.api.auth import router as auth_router
 from backend.app.api.performance import router as perf_router
@@ -29,13 +87,8 @@ app.include_router(auth_router)
 app.include_router(perf_router)
 client = TestClient(app)
 
-import uuid
 EMAIL = f'perf{uuid.uuid4().hex[:8]}@omega.com'
-
 client.post('/api/v1/auth/register', json={'email': EMAIL, 'password': '123456'})
-from backend.app.auth import hash_password
-from backend.app.database import SessionLocal
-from backend.app.auth import User
 db = SessionLocal()
 user = db.query(User).filter(User.email == EMAIL).first()
 user.plan = "paid"
