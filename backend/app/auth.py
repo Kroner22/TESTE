@@ -31,6 +31,9 @@ class User(Base):
     notify_telegram = Column(Boolean, default=False)
     notify_whatsapp = Column(Boolean, default=False)
     notify_min_grade = Column(String(16), default="SOLID")
+    stripe_customer_id = Column(String(128), nullable=True)
+    stripe_subscription_id = Column(String(128), nullable=True)
+    subscription_status = Column(String(32), default="inactive")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

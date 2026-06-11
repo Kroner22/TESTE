@@ -29,6 +29,8 @@ from .api.auth import router as auth_router
 from .api.predictions import router as predictions_router
 from .api.performance import router as performance_router
 from .api.admin import router as admin_router
+from .api.payment import router as payment_router
+from .api.payment import upgrade_router
 from .frontend_router import router as frontend_router
 from .ws.live import router as ws_router
 from .log_config import configure_logging, get_logger
@@ -149,6 +151,8 @@ app.include_router(auth_router)
 app.include_router(predictions_router)
 app.include_router(performance_router)
 app.include_router(admin_router)
+app.include_router(payment_router)
+app.include_router(upgrade_router)
 app.include_router(frontend_router)
 app.include_router(ws_router)
 

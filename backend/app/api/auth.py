@@ -112,6 +112,8 @@ def dashboard(current_user: User = Depends(get_current_user)):
         "requests_remaining": (current_user.requests_limit or 1000) - (current_user.requests_count or 0),
         "has_api_key": bool(current_user.api_key),
         "api_key": current_user.api_key,
+        "subscription_status": current_user.subscription_status or "inactive",
+        "has_subscription": bool(current_user.stripe_subscription_id),
     }
 
 
