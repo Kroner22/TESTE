@@ -1,0 +1,35 @@
+{
+  "xgboost": {
+    "accuracy": 1.0,
+    "auc_roc": 1.0,
+    "train_samples": 39,
+    "test_samples": 10
+  },
+  "lightgbm": {
+    "accuracy": 0.9,
+    "auc_roc": 0.5
+  },
+  "ensemble": {
+    "accuracy": 0.9,
+    "auc_roc": 1.0
+  },
+  "n_samples": 49,
+  "n_features": 14,
+  "feature_names": [
+    "best_home_odd",
+    "best_away_odd",
+    "best_draw_odd",
+    "n_bookmakers",
+    "n_outcomes",
+    "best_ev",
+    "best_confidence",
+    "best_grade_num",
+    "overround",
+    "home_implied",
+    "away_implied",
+    "odds_volatility",
+    "has_opportunity",
+    "n_opportunities"
+  ],
+  "trained_at": "2026-06-11T10:48:54.173329+00:00"
+}

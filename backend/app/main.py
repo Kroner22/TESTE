@@ -155,6 +155,11 @@ app.include_router(payment_router)
 app.include_router(upgrade_router)
 app.include_router(frontend_router)
 app.include_router(ws_router)
+try:
+    from backend.crewa.api import router as crew_router
+    app.include_router(crew_router)
+except ImportError:
+    pass
 
 
 @app.get("/metrics")
