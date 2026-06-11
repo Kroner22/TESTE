@@ -1,70 +1,65 @@
 @echo off
-title Omega Predictions
-cd /d "%~dp0"
+REM Omega Predictions - Startup Script
+echo.
+echo   _____                    _____       _ _ _                
+echo  ^|  _  ^|___ ___ ___ ___   ^|     ^|_ _ _^| ^|_^| ^|_ ___ ___ ___ 
+echo  ^|   __^| .'^| . ^| -_^|  _^|  ^|  ^|  ^| ^| ^| ^| ^| ^|  _^| .'^| . ^| -_^|
+echo  ^|__^|  ^|__,^|_  ^|___^|_^|    ^|_____^|_____^|_^|_^|_^|___^|__,^|_  ^|___^|
+echo            ^|_^|                                    ^|_^|        
+echo.
+echo ========================================
+echo  Omega Predictions - Inicializacao
+echo ========================================
+echo.
+
+REM Check Python
+python --version >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [ERRO] Python nao encontrado. Instale Python 3.13+
+    pause
+    exit /b 1
+)
+echo [OK] Python encontrado
+
+REM Check if .env exists
+if not exist .env (
+    if exist .env.production (
+        copy .env.production .env
+        echo [OK] .env copiado de .env.production
+    ) else (
+        echo [AVISO] .env nao encontrado. Usando variaveis padrao.
+    )
+)
+
+REM Install dependencies
+if exist requirements.txt (
+    echo [INFO] Instalando dependencias...
+    pip install -r requirements.txt -q
+    if %ERRORLEVEL% neq 0 (
+        echo [ERRO] Falha ao instalar dependencias
+        pause
+        exit /b 1
+    )
+    echo [OK] Dependencias instaladas
+)
+
+REM Seed predictions if needed
+python -c "import os; os.environ['RUNTIME_MODE']='SIMULATION'; from backend.app.database import DB_PATH; import sqlite3; c=sqlite3.connect(DB_PATH); n=c.execute('SELECT count(*) FROM opportunities').fetchone()[0]; c.close(); exit(0 if n>0 else 1)" >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [INFO] Seed de predictions...
+    python scripts/seed_predictions.py
+    python scripts/seed_trades.py
+    echo [OK] Predictions seedadas
+) else (
+    echo [OK] Predictions ja existem no banco
+)
 
 echo.
-echo  ╔══════════════════════════════════════╗
-echo  ║     OMEGA PREDICTIONS PLATFORM      ║
-echo  ║    Selecione uma opcao:             ║
-echo  ╚══════════════════════════════════════╝
+echo ========================================
+echo  Iniciando servidor em http://localhost:8000
+echo  Frontend: http://localhost:8000/app
+echo  Docs:     http://localhost:8000/docs
+echo ========================================
 echo.
-echo  [1] Iniciar API (http://localhost:8000)
-echo  [2] Iniciar Frontend (http://localhost:3000)
-echo  [3] Rodar Testes
-echo  [4] Abrir GitHub
-echo  [5] Sobre
-echo.
-choice /c 12345 /n /m "Digite [1-5]: "
-if errorlevel 5 goto about
-if errorlevel 4 goto github
-if errorlevel 3 goto tests
-if errorlevel 2 goto frontend
-if errorlevel 1 goto api
 
-:api
-echo.
-echo  Iniciando API Omega Predictions...
-python run.py
-goto end
-
-:frontend
-echo.
-echo  Iniciando Frontend...
-cd frontend
-npm run dev
-goto end
-
-:tests
-echo.
-echo  Rodando testes...
-python -m pytest tests/ -v
-pause
-goto end
-
-:github
-echo.
-echo  Para conectar ao GitHub, crie um repositorio em:
-echo  https://github.com/new
-echo.
-echo  Depois execute:
-echo  git remote add origin https://github.com/SEU_USUARIO/omega-predictions.git
-echo  git push -u origin main
-echo.
-pause
-goto end
-
-:about
-echo.
-echo  Omega Predictions v0.1.0
-echo  Plataforma de Previsoes Esportivas com IA Multi-Agente
-echo.
-echo  Baseado em:
-echo    - sports_quant (motor de value bets)
-echo    - AI_OPERATING_SYSTEM (orquestracao multi-agente)
-echo    - sports_ingestion (pipeline de dados)
-echo.
-echo  532 eventos · 2830 odds · 550 paper trades
-echo.
-pause
-
-:end
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
